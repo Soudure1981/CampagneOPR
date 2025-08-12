@@ -1,8 +1,5 @@
-node_modules
-dist
-.vercel
-.vscode
-.DS_Store
-.env
+﻿node_modules/
 .env.local
-
+dist/
+.vscode/
+.DS_Store
