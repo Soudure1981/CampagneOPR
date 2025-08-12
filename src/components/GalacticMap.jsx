@@ -1,8 +1,10 @@
-
 import React, { useMemo, useState } from 'react';
 import { generateMap } from '../logic/mapGenerator.js';
 import TurnPrompt from './TurnPrompt.jsx';
 import MenuModal from './MenuModal.jsx';
+import RuleModal from './RuleModal.jsx';
+import { terrainRules } from '../data/terrainRules.js';
+import { infrastructureRules } from '../data/infrastructureRules.js';
 
 function neighbors4(r,c,size){ const out=[]; if(r>0) out.push([r-1,c]); if(r<size-1) out.push([r+1,c]); if(c>0) out.push([r,c-1]); if(c<size-1) out.push([r,c+1]); return out; }
 function isAdj(r1,c1,r2,c2){ return Math.abs(r1-r2)+Math.abs(c1-c2)===1; }
@@ -27,25 +29,37 @@ export default function GalacticMap({ config, onRestart }){
       infoText: 'Phase de placement : Joueur 1, choisis une planète (elle devient à toi), puis une case adjacente pour ton vaisseau.',
       menuOpen: false,
       pickPlanet: null,
-      target: null
+      target: null,
+      selectedPlanet: null,
+      log: []
     };
   });
+
+  const [ruleModal, setRuleModal] = useState({ open:false, title:"", content:"" });
 
   const grid = state.grid;
   const currentPlayer = players[state.current];
   const currentShip = state.ships[state.current];
+
+  // ------- Journal -------
+  function pushLog(message){
+    setState(s=>({ ...s, log:[...s.log, { round:s.round, player: players[s.current].name, msg: message, at: new Date().toISOString() }] }));
+  }
+  function exportLogTxt(){
+    const lines = state.log.map(e=>`T${e.round} • ${e.player} • ${e.msg}`);
+    const blob = new Blob([lines.join('\n')], { type:'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='journal.txt'; a.click(); URL.revokeObjectURL(url);
+  }
+  function clearLog(){ setState(s=>({ ...s, log: [] })); }
 
   function revealAround(r,c){
     setState(s=>{
       const g=s.grid.map(row=>row.slice());
       for(const [nr,nc] of neighbors4(r,c,gridSize)){
         const cell=g[nr][nc];
-        if(cell.type==='planet'){
-          g[nr][nc]={...cell, revealed:true};
-        }
-        if(cell.type==='stargate'){
-          g[nr][nc]={...cell, revealed:true};
-        }
+        if(cell.type==='planet'){ g[nr][nc]={...cell, revealed:true}; }
+        if(cell.type==='stargate'){ g[nr][nc]={...cell, revealed:true}; }
       }
       return {...s, grid:g};
     });
@@ -64,21 +78,25 @@ export default function GalacticMap({ config, onRestart }){
   function handleCellClick(r,c){
     const cellObj = grid[r][c] || { type:'empty' };
 
+    // Sélection (panneau infos)
+    if(cellObj.type==='planet'){
+      setState(s=>({ ...s, selectedPlanet:{ ...cellObj } }));
+    }
+
     // Placement
     if(state.phase==='placement'){
       if(!state.pickPlanet){
-        if(cellObj.type==='planet'){
-          setState(s=>({...s, pickPlanet:[r,c]}));
-        }
+        if(cellObj.type==='planet'){ setState(s=>({ ...s, pickPlanet:[r,c] })); }
         return;
       }
       const [pr,pc]=state.pickPlanet;
       if(isAdj(pr,pc,r,c) && grid[r][c].type==='empty'){
-        // place ship & give planet to player
         setState(s=>{
           const ships=s.ships.map((sh,i)=> i===s.current? {...sh, pos:[r,c]}: sh);
           const g=s.grid.map(row=>row.slice());
+          const planetBefore = g[pr][pc];
           g[pr][pc]={...g[pr][pc], owner: currentPlayer.name, revealed:true};
+          pushLog(`${currentPlayer.name} colonise ${planetBefore.name} (${planetBefore.planetType||'planète'})`);
           revealAround(r,c);
           const scores=recomputeScores(g);
           const allHave = ships.every(sh=> !!sh.pos);
@@ -132,7 +150,9 @@ export default function GalacticMap({ config, onRestart }){
       if(!s.target) return s;
       const {r,c}=s.target;
       const g=s.grid.map(row=>row.slice());
+      const before = g[r][c];
       g[r][c]={...g[r][c], owner: currentPlayer.name, revealed:true};
+      pushLog(`${currentPlayer.name} conquiert ${before.name} (${before.planetType||'planète'})`);
       const scores=recomputeScores(g);
       return {...s, grid:g, scores, target:null};
     });
@@ -152,13 +172,18 @@ export default function GalacticMap({ config, onRestart }){
     });
   }
 
-  const canConquer = useMemo(()=>{
-    if(state.phase!=='play' || !currentShip.pos) return false;
-    if(!state.target) return false;
-    return true;
-  },[state.phase, state.target, currentShip]);
-
   const onGate = !!(currentShip.pos && grid[currentShip.pos[0]][currentShip.pos[1]].type==='stargate');
+
+  // --- Panneau planète sélectionnée ---
+  const sp = state.selectedPlanet;
+  const spRevealed = !!sp?.revealed;
+  const spImg = sp ? (spRevealed ? (sp.img || sp.realImg) : '/assets/inconnueV2.png') : null;
+  const spName = sp ? (spRevealed ? (sp.name || 'Sans nom') : '???') : null;
+  const spType = sp ? (spRevealed ? (sp.planetType || '—') : '???') : null;
+  const spTerrain = sp ? (spRevealed ? (sp.terrain || '—') : '???') : null;
+  const spInfra = sp ? (spRevealed ? (sp.infrastructure || '—') : '???') : null;
+  const spOwner = sp ? (spRevealed ? (sp.owner || 'Aucun') : '???') : null;
+  const spVP = sp ? (spRevealed ? (sp.vp ?? 0) : '???') : null;
 
   return (
     <div className="container">
@@ -181,7 +206,17 @@ export default function GalacticMap({ config, onRestart }){
                 <div key={`${r}-${c}`} className="cell" onClick={()=>handleCellClick(r,c)}>
                   {ownerColor && <span className="halo" style={{color: ownerColor}} />}
                   {imgSrc && <img className={safe.type==='stargate'?'stargate':undefined} src={imgSrc} alt={safe.name||safe.type} />}
-                  {isShip && <svg className="ship" width="22" height="22" viewBox="0 0 24 24" style={{ color: state.ships.find(sh=>sh.pos && sh.pos[0]===r && sh.pos[1]===c)?.color }}><path fill="currentColor" d="M12 2l3 7h7l-5.5 4 2 7-6.5-4.5L5.5 20l2-7L2 9h7z"/></svg>}
+                  {isShip && (
+                    <img
+                      src="/assets/spaceship.png"
+                      alt="Vaisseau"
+                      style={{
+                        width:'28px', height:'28px', position:'absolute', top:'50%', left:'50%',
+                        transform:'translate(-50%, -50%)',
+                        filter:`drop-shadow(0 0 4px ${state.ships.find(sh=>sh.pos && sh.pos[0]===r && sh.pos[1]===c)?.color}) drop-shadow(0 0 6px ${state.ships.find(sh=>sh.pos && sh.pos[0]===r && sh.pos[1]===c)?.color}) saturate(2)`
+                      }}
+                    />
+                  )}
                 </div>
               );
             }))}
@@ -200,19 +235,68 @@ export default function GalacticMap({ config, onRestart }){
           <hr className="sep" />
           <div><b>Points de victoire</b></div>
           {players.map(p=> (
-            <div key={p.name} className="stat-line"><span>{p.name}</span><span>{state.scores[p.name]||0}</span></div>
+            <div key={p.name} className="stat-line" style={{display:'flex', alignItems:'center', gap:'8px'}}>
+              <span style={{width:'14px',height:'14px',background:p.color,borderRadius:'3px',display:'inline-block'}}></span>
+              <span>{p.name}</span>
+              <span style={{marginLeft:'auto', fontWeight:'bold'}}>{state.scores[p.name]||0}</span>
+            </div>
           ))}
           <hr className="sep" />
           <div><b>Actions</b></div>
           {state.target && <button className="btn" data-click-sound onClick={conquerTarget}>Coloniser / Conquérir</button>}
           {onGate && <button className="btn" data-click-sound onClick={useStargate}>Utiliser stargate</button>}
           {!state.target && !onGate && <div className="note">Clique une planète adjacente pour la coloniser / conquérir. Déplace-toi (N/E/S/O). Stargate = téléportation.</div>}
+
+          {/* Panneau infos planète sélectionnée */}
+          {sp && (
+            <div style={{ marginTop: 20, padding: 10, border: '1px solid var(--neon)', borderRadius: '8px', background: 'rgba(0,0,0,0.3)' }}>
+              <h4 style={{ marginTop: 0 }}>{spName}</h4>
+              {spImg && <img src={spImg} alt={spName || 'Planète'} style={{ width: '60px', height: '60px', borderRadius: '50%' }} />}
+              <div>Type : <b>{spType}</b></div>
+              <div>
+                Terrain : <b style={{ cursor: spRevealed ? 'pointer' : 'default', color: spRevealed ? 'var(--accent)' : 'inherit' }}
+                  onClick={() => spRevealed && setRuleModal({ open: true, title: `Règle terrain : ${spTerrain}`, content: terrainRules[spTerrain] })}>
+                  {spTerrain}
+                </b>
+              </div>
+              <div>
+                Infrastructure : <b style={{ cursor: spRevealed ? 'pointer' : 'default', color: spRevealed ? 'var(--accent)' : 'inherit' }}
+                  onClick={() => spRevealed && setRuleModal({ open: true, title: `Règle infrastructure : ${spInfra}`, content: infrastructureRules[spInfra] })}>
+                  {spInfra}
+                </b>
+              </div>
+              <div>Propriétaire : <b>{spOwner}</b></div>
+              <div>Points de victoire : <b>{spVP}</b></div>
+            </div>
+          )}
+
+          {/* Journal (déroulant, hauteur fixe) */}
+          <div style={{ marginTop:20, padding:10, border:'1px solid var(--neon)', borderRadius:'8px', background:'rgba(0,0,0,0.22)' }}>
+            <div style={{display:'flex',alignItems:'center',gap:8, marginBottom:6}}>
+              <h4 style={{margin:'0'}}>Journal</h4>
+              <div style={{marginLeft:'auto', display:'flex', gap:8}}>
+                <button className="btn" data-click-sound onClick={exportLogTxt}>Exporter .txt</button>
+                <button className="btn" data-click-sound onClick={clearLog}>Effacer</button>
+              </div>
+            </div>
+            <div style={{maxHeight:220, overflowY:'auto', paddingRight:4}}>
+              {state.log.length===0 && <div className="note">Aucun événement pour l'instant.</div>}
+              {state.log.map((e,i)=>(
+                <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', fontSize:13, lineHeight:1.25}}>
+                  <span style={{width:10, height:10, borderRadius:3, background: players.find(p=>p.name===e.player)?.color || '#888', flex:'0 0 10px'}} />
+                  <span style={{opacity:.85, marginRight:6}}>T{e.round}</span>
+                  <span style={{whiteSpace:'pre-wrap'}}>{e.msg}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       <TurnPrompt open={state.infoOpen} title="Info" message={state.infoText} onClose={()=>setState(s=>({...s, infoOpen:false}))} />
       <MenuModal open={state.menuOpen} onClose={()=>setState(s=>({...s, menuOpen:false}))}
         getState={()=>({config, state})} onLoadState={(full)=>{ if(full?.state){ setState(full.state);} }} onNewCampaign={onRestart} />
+      <RuleModal open={ruleModal.open} title={ruleModal.title} content={ruleModal.content} onClose={()=>setRuleModal({ open:false, title:"", content:"" })} />
     </div>
   );
 }
