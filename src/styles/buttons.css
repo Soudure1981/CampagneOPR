@@ -1,0 +1,12 @@
+.btn-plunger{
+  position:relative; padding:14px 26px; font-weight:bold;
+  background:#2d0000; color:#ffebeb; border:2px solid #ff2b2b;
+  border-radius:14px; box-shadow: inset 0 2px 0 #ff5a5a, 0 0 16px #ff2b2b66, 0 6px 0 #7a0000;
+  cursor:pointer; transition: transform .06s ease;
+}
+.btn-plunger:active{ transform: translateY(2px); box-shadow: inset 0 1px 0 #ff5a5a, 0 0 10px #ff2b2b66, 0 3px 0 #7a0000; }
+.btn-gear{
+  width:48px; height:48px; border-radius:50%; border:2px solid #39FF14; background:rgba(0,0,0,0.2);
+  box-shadow: 0 0 12px #39ff1444; position:relative; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.btn-gear svg{ filter: drop-shadow(0 0 6px #39ff1499); }

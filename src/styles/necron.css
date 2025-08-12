@@ -1,0 +1,10 @@
+.wizard-bg{min-height:100vh;width:100vw;display:flex;align-items:center;justify-content:center}
+.wizard-card{background:rgba(13,22,15,0.92);border-radius:27px;box-shadow:0 0 90px 30px #39ff1460,0 0 5px #0f0;padding:35px 50px;min-width:430px;margin:48px auto;color:#39FF14;font-family:'Share Tech Mono','Consolas',monospace}
+.necron-title{color:#39FF14;text-shadow:0 0 20px #39ff1488,0 0 4px #fff,0 0 2px #000;font-size:2.2rem;text-align:center;margin-bottom:10px;letter-spacing:2px}
+.wizard-row{display:flex;align-items:center;margin:10px 0;gap:12px}
+.wizard-label{color:#39FF14;text-shadow:0 0 4px #39ff1440,0 0 1px #000;font-size:1.05rem;margin-right:8px;min-width:200px}
+.wizard-input{background:#010f18;color:#39FF14;border:1.5px solid #39FF14;border-radius:8px;padding:6px 12px;font-size:1rem}
+.wizard-color{border-radius:8px;border:2px solid #39FF14;width:44px;height:34px;background:#010f18}
+.wizard-btn{background:#010;color:#39FF14;border:2px solid #39FF14;border-radius:9px;padding:10px 24px;font-size:1.1rem;font-family:inherit;font-weight:700;cursor:pointer;margin-top:16px;box-shadow:0 0 12px #39ff1422}
+.wizard-btn:hover{background:#181;color:#fff;border:2.5px solid #fff700;box-shadow:0 0 22px #fff700aa}
+.grid-cell{transition:box-shadow .2s,background .2s}
