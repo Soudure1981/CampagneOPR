@@ -1,6 +1,7 @@
 // src/components/FloatingCloudSave.jsx
 import { useEffect, useState } from 'react';
-import { loadState, saveState, getCurrentStateFallback, applyStateFallback } from '../services/campaignStorage';
+import { loadState, saveState, getCurrentStateFallback, applyStateFallback }
+  from '../services/campaignStorage.js';
 
 export default function FloatingCloudSave() {
   const [busy, setBusy] = useState(false);
@@ -44,22 +45,8 @@ export default function FloatingCloudSave() {
   }
 
   useEffect(() => {
-    // Optionnel : charger automatiquement au 1er affichage
     onLoad().catch(() => {});
-    // Sauvegarde auto avant fermeture d’onglet
-    const beforeUnload = () => {
-      const state = getCurrentStateFallback();
-      if (state) {
-        navigator.sendBeacon?.(
-          '/__noop',
-          new Blob([], { type: 'text/plain' })
-        );
-        // On ne peut pas appeler Supabase proprement ici, donc on s'abstient.
-        // L’utilisateur peut cliquer "Sauvegarder" avant de partir.
-      }
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
+    return () => {};
   }, []);
 
   return (

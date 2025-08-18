@@ -1,10 +1,7 @@
 // src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-
-// 👇 remets l'import de TON CSS global (généralement index.css)
-import './index.css';
-
+import './index.css';                // ← important pour le style global
 import App from './App.jsx';
 import FloatingCloudSave from './components/FloatingCloudSave.jsx';
 
