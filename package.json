@@ -1,4 +1,3 @@
-
 {
   "name": "grimdark-galactic-campaign",
   "version": "1.0.0",
@@ -10,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.55.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
