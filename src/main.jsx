@@ -1,10 +1,12 @@
 // src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
+// 👇 remets l'import de TON CSS global (généralement index.css)
+import './index.css';
+
 import App from './App.jsx';
 import FloatingCloudSave from './components/FloatingCloudSave.jsx';
-
-// Si tu as un CSS global, garde l'import existant (ex. import './index.css')
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
